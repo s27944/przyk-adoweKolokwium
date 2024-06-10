@@ -24,7 +24,6 @@ public class DatabaseContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         
-        
         modelBuilder.Entity<Product_Order>()
             .HasKey(po => new { po.ProductId, po.OrderId });
 

@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WebApi.Contexts;
+using WebApi.Exceptions;
 using WebApi.Models;
+using WebApi.RequestModels;
 using WebApi.ResponseModels;
 
 namespace WebApi.Services;
@@ -8,6 +10,7 @@ namespace WebApi.Services;
 public interface IDatabaseService
 {
     public Task<GetOrdersResponseModel> GetClientOrdersAsync(int clientId);
+    public Task<int> PostClientOrder(int clientId, PostClientOrderModel request);
 }
 
 public class DatabaseService : IDatabaseService
@@ -21,7 +24,7 @@ public class DatabaseService : IDatabaseService
 
     public async Task<GetOrdersResponseModel> GetClientOrdersAsync(int clientId)
     {
-        var clientExists = _context.Client.Where(c => c.clientID == clientId);
+        var clientExists = await _context.Client.FirstOrDefaultAsync(c => c.clientID == clientId);
         if (clientExists == null)
         {
             return null;
@@ -63,5 +66,70 @@ public class DatabaseService : IDatabaseService
         {
             ordersList = ordersList
         };
+    }
+
+    public async Task<int> PostClientOrder(int clientId, PostClientOrderModel request)
+    {
+        using (var transaction = await _context.Database.BeginTransactionAsync())
+        {
+            try
+            {
+                //sprawdzenie statusu   
+                var statusId = await _context.Status
+                    .Where(s => s.statusName == "Utworzone")
+                    .Select(s => s.statusID)
+                    .FirstOrDefaultAsync();
+                if (statusId == null)
+                {
+                    throw new NotFoundException($"Brak statusu Utworzone w bazie danych");
+                }
+
+                //sprawdzenie klienta
+                var client = await _context.Client
+                    .FirstOrDefaultAsync(c => c.clientID == clientId);
+                if (client == null)
+                {
+                    throw new NotFoundException($"Brak klienta o id {clientId}!");
+                }
+
+                //utworzenie nowego zamówienia
+                var order = new Order
+                {
+                    CreatedAt = request.createdAt,
+                    FulfilledAt = request.fulfilledAt,
+                    ClientID = clientId,
+                    StatusID = statusId
+                };
+
+                //dodanie zamówienia
+                _context.Order.Add(order);
+                
+                //zapisanie zmian
+                await _context.SaveChangesAsync();
+                
+                //dodanie produktów do zamówienia
+                foreach (var product in request.products)
+                {
+                    var product_order = new Product_Order
+                    {
+                        ProductId = product.productId,
+                        OrderId = order.ID,
+                        amount = product.amount
+                    };
+
+                    _context.Product_Order.Add(product_order);
+                }
+                
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return order.ID;
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
     }
 }

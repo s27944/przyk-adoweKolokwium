@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using WebApi.RequestModels;
 using WebApi.Services;
 
 namespace WebApi.Controllers;
@@ -26,5 +27,21 @@ public class ApiController : ControllerBase
         }
         
         return Ok(account);
+    }
+    
+    
+    [HttpPost("clients/{id:int}/orders")]
+    public async Task<IActionResult> PostRequest(int id, PostClientOrderModel request)
+    {
+        try
+        {
+            var orderId = await _databaseService.PostClientOrder(id, request);
+            return Created();
+        }
+        catch (Exception e)
+        {
+            return NotFound(e.Message);
+        }
+        
     }
 }
