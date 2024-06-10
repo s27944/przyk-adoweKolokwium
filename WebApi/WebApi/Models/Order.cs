@@ -9,13 +9,13 @@ public class Order
     [Key]
     [Column("ID")]
     public int ID { get; set; }
-    
+
     [Column("CreatedAt")]
     public DateTime CreatedAt { get; set; }
-    
+
     [Column("FulfilledAt")]
     public DateTime? FulfilledAt { get; set; }
-    
+
     [ForeignKey("Client")]
     [Column("ClientID")]
     public int ClientID { get; set; }
@@ -25,6 +25,6 @@ public class Order
     [Column("StatusID")]
     public int StatusID { get; set; }
     public Status Status { get; set; }
-    
-    public IEnumerable<Product_Order> Product_Order;
+
+    public IEnumerable<Product_Order> Product_Order { get; set; }
 }

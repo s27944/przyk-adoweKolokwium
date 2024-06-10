@@ -8,7 +8,7 @@ public class PostClientOrderModel
     [Required]
     public DateTime createdAt { get; set; }
     
-    public DateTime fulfilledAt { get; set; }
+    public DateTime? fulfilledAt { get; set; }
     
     [Required]
     [MinLength(1)]
